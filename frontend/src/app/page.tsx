@@ -13,7 +13,7 @@ const HomePage = () => {
             <button onClick={() => router.push('/login')} style={{ marginRight: '10px' }}>
                 Iniciar Sesión
             </button>
-            <button onClick={() => router.push('/pages/events')}>
+            <button onClick={() => router.push('/events')}>
                 Ver Lista de Eventos
             </button>
         </div>

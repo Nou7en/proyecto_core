@@ -20,8 +20,9 @@ const AdminEventCRUD = () => {
     date: '',
     location: '',
     budget: 0,
-    description: ''
+    description: '',
   });
+  const [editEvent, setEditEvent] = useState<Event | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -40,9 +41,15 @@ const AdminEventCRUD = () => {
     setShowCreateForm(!showCreateForm);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setNewEvent((prev) => ({ ...prev, [name]: name === 'budget' ? parseFloat(value) : value }));
+    if (editEvent) {
+      setEditEvent((prev) => (prev ? { ...prev, [name]: name === 'budget' ? parseFloat(value) : value } : null));
+    } else {
+      setNewEvent((prev) => ({ ...prev, [name]: name === 'budget' ? parseFloat(value) : value }));
+    }
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -56,6 +63,27 @@ const AdminEventCRUD = () => {
     } catch (error) {
       setError('Error al crear el evento. Por favor, verifica los datos.');
       console.error('Error creating event:', error);
+    }
+  };
+
+  const handleEdit = (event: Event) => {
+    setEditEvent(event);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEvent) return;
+
+    try {
+      await axios.put(`/events/${editEvent.id}`, editEvent);
+      setEvents((prev) =>
+        prev.map((event) => (event.id === editEvent.id ? editEvent : event))
+      );
+      setEditEvent(null);
+      setError('');
+    } catch (error) {
+      setError('Error al editar el evento. Por favor, verifica los datos.');
+      console.error('Error editing event:', error);
     }
   };
 
@@ -137,6 +165,69 @@ const AdminEventCRUD = () => {
         </form>
       )}
 
+      {editEvent && (
+        <form onSubmit={handleEditSubmit} style={styles.form}>
+          <h2>Editar Evento</h2>
+          <div style={styles.formGroup}>
+            <label>Nombre:</label>
+            <input
+              type="text"
+              name="name"
+              value={editEvent.name}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Fecha:</label>
+            <input
+              type="date"
+              name="date"
+              value={editEvent.date}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Ubicación:</label>
+            <input
+              type="text"
+              name="location"
+              value={editEvent.location}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Presupuesto:</label>
+            <input
+              type="number"
+              name="budget"
+              value={editEvent.budget}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Descripción:</label>
+            <textarea
+              name="description"
+              value={editEvent.description}
+              onChange={handleInputChange}
+              style={styles.input}
+            />
+          </div>
+          {error && <p style={styles.errorText}>{error}</p>}
+          <button type="submit" style={styles.submitButton}>
+            Guardar Cambios
+          </button>
+        </form>
+      )}
+
       <table style={styles.table}>
         <thead>
           <tr>
@@ -159,6 +250,9 @@ const AdminEventCRUD = () => {
               <td style={styles.tableCell}>{event.budget}</td>
               <td style={styles.tableCell}>{event.description}</td>
               <td style={styles.tableCell}>
+                <button style={styles.editButton} onClick={() => handleEdit(event)}>
+                  Editar
+                </button>
                 <button style={styles.deleteButton} onClick={() => handleDelete(event.id)}>
                   Eliminar
                 </button>
@@ -171,96 +265,91 @@ const AdminEventCRUD = () => {
   );
 };
 
-const styles: { 
-    container: React.CSSProperties;
-    title: React.CSSProperties;
-    createButton: React.CSSProperties;
-    form: React.CSSProperties;
-    formGroup: React.CSSProperties;
-    input: React.CSSProperties;
-    errorText: React.CSSProperties;
-    submitButton: React.CSSProperties;
-    table: React.CSSProperties;
-    tableHeader: React.CSSProperties;
-    tableRow: React.CSSProperties;
-    tableCell: React.CSSProperties;
-    deleteButton: React.CSSProperties;
-  } = {
-    container: {
-      padding: '20px',
-      backgroundColor: '#f8f9fa',
-      minHeight: '100vh',
-    },
-    title: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      marginBottom: '20px',
-    },
-    createButton: {
-      backgroundColor: '#28a745',
-      color: '#fff',
-      padding: '10px 15px',
-      borderRadius: '5px',
-      border: 'none',
-      cursor: 'pointer',
-      marginBottom: '15px',
-    },
-    form: {
-      marginBottom: '20px',
-      backgroundColor: '#fff',
-      padding: '15px',
-      borderRadius: '5px',
-      boxShadow: '0 0 10px rgba(0,0,0,0.1)',
-    },
-    formGroup: {
-      marginBottom: '10px',
-    },
-    input: {
-      width: '100%',
-      padding: '8px',
-      marginTop: '5px',
-      borderRadius: '5px',
-      border: '1px solid #ccc',
-    },
-    errorText: {
-      color: 'red',
-      marginBottom: '10px',
-    },
-    submitButton: {
-      backgroundColor: '#007bff',
-      color: '#fff',
-      padding: '10px 15px',
-      borderRadius: '5px',
-      border: 'none',
-      cursor: 'pointer',
-    },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      marginBottom: '20px',
-    },
-    tableHeader: {
-      backgroundColor: '#343a40',
-      color: '#fff',
-      padding: '10px',
-      textAlign: 'left' as 'left',
-    },
-    tableRow: {
-      backgroundColor: '#fff',
-      borderBottom: '1px solid #dee2e6',
-    },
-    tableCell: {
-      padding: '10px',
-      textAlign: 'left' as 'left',
-    },
-    deleteButton: {
-      backgroundColor: '#dc3545',
-      color: '#fff',
-      border: 'none',
-      padding: '5px 10px',
-      borderRadius: '3px',
-      cursor: 'pointer',
-    },
-  };
+const styles = {
+  container: {
+    padding: '20px',
+    backgroundColor: '#f8f9fa',
+    minHeight: '100vh',
+  },
+  title: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    marginBottom: '20px',
+  },
+  createButton: {
+    backgroundColor: '#28a745',
+    color: '#fff',
+    padding: '10px 15px',
+    borderRadius: '5px',
+    border: 'none',
+    cursor: 'pointer',
+    marginBottom: '15px',
+  },
+  form: {
+    marginBottom: '20px',
+    backgroundColor: '#fff',
+    padding: '15px',
+    borderRadius: '5px',
+    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+  },
+  formGroup: {
+    marginBottom: '10px',
+  },
+  input: {
+    width: '100%',
+    padding: '8px',
+    marginTop: '5px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: '10px',
+  },
+  submitButton: {
+    backgroundColor: '#007bff',
+    color: '#fff',
+    padding: '10px 15px',
+    borderRadius: '5px',
+    border: 'none',
+    cursor: 'pointer',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginBottom: '20px',
+  },
+  tableHeader: {
+    backgroundColor: '#343a40',
+    color: '#fff',
+    padding: '10px',
+    textAlign: 'left' as 'left',
+  },
+  tableRow: {
+    backgroundColor: '#fff',
+    borderBottom: '1px solid #dee2e6',
+  },
+  tableCell: {
+    padding: '10px',
+    textAlign: 'left' as 'left',
+  },
+  editButton: {
+    backgroundColor: '#ffc107',
+    color: '#fff',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '3px',
+    cursor: 'pointer',
+    marginRight: '5px',
+  },
+  deleteButton: {
+    backgroundColor: '#dc3545',
+    color: '#fff',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '3px',
+    cursor: 'pointer',
+  },
+};
 
 export default AdminEventCRUD;

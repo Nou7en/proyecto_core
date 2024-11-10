@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import RegisterAsistente from '../../components/RegisterAsistente'; // Ajusta la ruta si es necesario
 import axios from '../../utils/axiosConfig';
-import RegisterForm from '../../components/RegisterForm'; // Importación añadida
 
 interface Event {
   id: number;
@@ -12,14 +14,14 @@ interface Event {
 
 const EventDetail = () => {
   const [event, setEvent] = useState<Event | null>(null);
-  const router = useRouter();
-  const { id } = router.query;
+  const searchParams = useSearchParams();
+  const eventId = searchParams?.get('eventId') ? parseInt(searchParams.get('eventId')!, 10) : null;
 
   useEffect(() => {
-    if (id) {
+    if (eventId) {
       const fetchEvent = async () => {
         try {
-          const response = await axios.get(`/events/${id}`);
+          const response = await axios.get(`/events/${eventId}`);
           setEvent(response.data);
         } catch (error) {
           console.error('Error fetching event:', error);
@@ -28,7 +30,7 @@ const EventDetail = () => {
 
       fetchEvent();
     }
-  }, [id]);
+  }, [eventId]);
 
   if (!event) return <p>Loading...</p>;
 
@@ -37,7 +39,7 @@ const EventDetail = () => {
       <h1>{event.name}</h1>
       <p>Fecha: {new Date(event.date).toLocaleDateString()}</p>
       <p>Ubicación: {event.location}</p>
-      <RegisterForm eventId={parseInt(id as string, 10)} />
+      <RegisterAsistente eventId={event.id} />
     </div>
   );
 };
