@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum de alérgenos
+enum Alergenos {
+  MILK
+  EGGS
+  FISH
+  CRUSTACEAN_SHELLFISH
+  TREE_NUTS
+  PEANUTS
+  WHEAT
+  SOYBEANS
+  SESAME
+  MUSTARD
+}
+
+// Enum de ingredientes (definido previamente)
+enum Ingredientes {
+  TOMATO
+  CHEESE
+  LETTUCE
+  CHICKEN
+  BEEF
+  ONION
+  GARLIC
+  PEPPER
+  SALT
+  OLIVE_OIL
+  BUTTER
+  CARROT
+  POTATO
+  RICE
+  PASTA
+  MILK
+  EGG
+  FLOUR
+  SUGAR
+  APPLE
+  BANANA
+  STRAWBERRY
+  ORANGE
+  SPINACH
+  BROCCOLI
+  CUCUMBER
+  ZUCCHINI
+  CORN
+  PEAS
+  MUSHROOM
+  BASIL
+  CILANTRO
+  THYME
+  ROSEMARY
+  PARSLEY
+  LEMON
+  LIME
+  GINGER
+  CINNAMON
+  HONEY
+  VINEGAR
+  SOY_SAUCE
+  YOGURT
+  CREAM
+  BACON
+  HAM
+  SHRIMP
+  SALMON
+  TUNA
+  ALMOND
+  WALNUT
+  PISTACHIO
+  OREGANO
+  CHILI_PEPPER
+  TURMERIC
+  CUMIN
+  CORIANDER
+  CLOVES
+  BAY_LEAF
+  MUSTARD_SEED
+  FENNEL
+  ANISE
+  MINT
+  COCONUT_MILK
+  LENTILS
+  CHICKPEAS
+  AVOCADO
+  PINEAPPLE
+  BELL_PEPPER
+  SCALLIONS
+  CABBAGE
+  ARTICHOKE
+  ASPARAGUS
+  BRUSSELS_SPROUTS
+  BLUEBERRIES
+  RASPBERRIES
+  WATERMELON
+  PEACH
+  PEAR
+  MANGO
+  KIWI
+  PUMPKIN
+  SWEET_POTATO
+  CAULIFLOWER
+  GREEN_BEANS
+  BLACK_BEANS
+  RED_BEANS
+  QUINOA
+  BARLEY
+  OATS
+  SESAME_SEEDS
+  SUNFLOWER_SEEDS
+  PUMPKIN_SEEDS
+  MAPLE_SYRUP
+  CHOCOLATE
+  WHITE_CHOCOLATE
+  DARK_CHOCOLATE
+  COCONUT
+  CASHEWS
+  MACADAMIA_NUTS
+  RICOTTA
+  MOZZARELLA
+  PARMESAN
+  GOUDA
+  BRIE
+  CHEDDAR
+  PROVOLONE
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String // e.g., 'user' or 'admin'
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id          Int          @id @default(autoincrement())
+  name        String
+  date        DateTime
+  location    String
+  budget      Float
+  description String?
+  asistentes  Asistentes[] // Relación con asistentes
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  Menu        Menu[]
+}
+
+model Asistentes {
+  id        Int                 @id @default(autoincrement())
+  name      String // Nombre completo del asistente
+  country   String // País de origen
+  email     String? // Correo electrónico (opcional)
+  phone     String? // Teléfono (opcional)
+  eventId   Int
+  event     Event               @relation(fields: [eventId], references: [id])
+  alergenos AlergenoAsistente[]
+}
+
+model AlergenoAsistente {
+  id          Int        @id @default(autoincrement())
+  asistenteId Int
+  asistente   Asistentes @relation(fields: [asistenteId], references: [id])
+  alergeno    Alergenos
+}
+
+model Menu {
+  id      Int     @id @default(autoincrement())
+  name    String
+  eventId Int
+  event   Event   @relation(fields: [eventId], references: [id])
+  platos  Plato[]
+}
+
+model Plato {
+  id           Int                @id @default(autoincrement())
+  name         String
+  isVegan      Boolean
+  isGlutenFree Boolean
+  menuId       Int
+  menu         Menu               @relation(fields: [menuId], references: [id])
+  ingredientes IngredientePlato[]
+}
+
+model IngredientePlato {
+  id          Int          @id @default(autoincrement())
+  platoId     Int
+  plato       Plato        @relation(fields: [platoId], references: [id])
+  ingrediente Ingredientes
+}

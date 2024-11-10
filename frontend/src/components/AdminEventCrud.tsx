@@ -1,0 +1,266 @@
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import axios from '../utils/axiosConfig';
+
+interface Event {
+  id: number;
+  name: string;
+  date: string;
+  location: string;
+  budget: number;
+  description?: string;
+}
+
+const AdminEventCRUD = () => {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    name: '',
+    date: '',
+    location: '',
+    budget: 0,
+    description: ''
+  });
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get('/events');
+        setEvents(response.data);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      }
+    };
+    fetchEvents();
+  }, []);
+
+  const handleCreateFormToggle = () => {
+    setShowCreateForm(!showCreateForm);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewEvent((prev) => ({ ...prev, [name]: name === 'budget' ? parseFloat(value) : value }));
+  };
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('/events', newEvent);
+      setEvents((prev) => [...prev, response.data]);
+      setNewEvent({ name: '', date: '', location: '', budget: 0, description: '' });
+      setShowCreateForm(false);
+      setError('');
+    } catch (error) {
+      setError('Error al crear el evento. Por favor, verifica los datos.');
+      console.error('Error creating event:', error);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await axios.delete(`/events/${id}`);
+      setEvents(events.filter((event) => event.id !== id));
+    } catch (error) {
+      console.error('Error deleting event:', error);
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <h1 style={styles.title}>Gestión de Eventos</h1>
+      <button style={styles.createButton} onClick={handleCreateFormToggle}>
+        {showCreateForm ? 'Cancelar' : 'Añadir Evento'}
+      </button>
+
+      {showCreateForm && (
+        <form onSubmit={handleCreateEvent} style={styles.form}>
+          <div style={styles.formGroup}>
+            <label>Nombre:</label>
+            <input
+              type="text"
+              name="name"
+              value={newEvent.name}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Fecha:</label>
+            <input
+              type="date"
+              name="date"
+              value={newEvent.date}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Ubicación:</label>
+            <input
+              type="text"
+              name="location"
+              value={newEvent.location}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Presupuesto:</label>
+            <input
+              type="number"
+              name="budget"
+              value={newEvent.budget}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Descripción:</label>
+            <textarea
+              name="description"
+              value={newEvent.description}
+              onChange={handleInputChange}
+              style={styles.input}
+            />
+          </div>
+          {error && <p style={styles.errorText}>{error}</p>}
+          <button type="submit" style={styles.submitButton}>
+            Crear Evento
+          </button>
+        </form>
+      )}
+
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.tableHeader}>ID</th>
+            <th style={styles.tableHeader}>Nombre</th>
+            <th style={styles.tableHeader}>Fecha</th>
+            <th style={styles.tableHeader}>Ubicación</th>
+            <th style={styles.tableHeader}>Presupuesto</th>
+            <th style={styles.tableHeader}>Descripción</th>
+            <th style={styles.tableHeader}>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((event) => (
+            <tr key={event.id} style={styles.tableRow}>
+              <td style={styles.tableCell}>{event.id}</td>
+              <td style={styles.tableCell}>{event.name}</td>
+              <td style={styles.tableCell}>{new Date(event.date).toLocaleDateString()}</td>
+              <td style={styles.tableCell}>{event.location}</td>
+              <td style={styles.tableCell}>{event.budget}</td>
+              <td style={styles.tableCell}>{event.description}</td>
+              <td style={styles.tableCell}>
+                <button style={styles.deleteButton} onClick={() => handleDelete(event.id)}>
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const styles: { 
+    container: React.CSSProperties;
+    title: React.CSSProperties;
+    createButton: React.CSSProperties;
+    form: React.CSSProperties;
+    formGroup: React.CSSProperties;
+    input: React.CSSProperties;
+    errorText: React.CSSProperties;
+    submitButton: React.CSSProperties;
+    table: React.CSSProperties;
+    tableHeader: React.CSSProperties;
+    tableRow: React.CSSProperties;
+    tableCell: React.CSSProperties;
+    deleteButton: React.CSSProperties;
+  } = {
+    container: {
+      padding: '20px',
+      backgroundColor: '#f8f9fa',
+      minHeight: '100vh',
+    },
+    title: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      marginBottom: '20px',
+    },
+    createButton: {
+      backgroundColor: '#28a745',
+      color: '#fff',
+      padding: '10px 15px',
+      borderRadius: '5px',
+      border: 'none',
+      cursor: 'pointer',
+      marginBottom: '15px',
+    },
+    form: {
+      marginBottom: '20px',
+      backgroundColor: '#fff',
+      padding: '15px',
+      borderRadius: '5px',
+      boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+    },
+    formGroup: {
+      marginBottom: '10px',
+    },
+    input: {
+      width: '100%',
+      padding: '8px',
+      marginTop: '5px',
+      borderRadius: '5px',
+      border: '1px solid #ccc',
+    },
+    errorText: {
+      color: 'red',
+      marginBottom: '10px',
+    },
+    submitButton: {
+      backgroundColor: '#007bff',
+      color: '#fff',
+      padding: '10px 15px',
+      borderRadius: '5px',
+      border: 'none',
+      cursor: 'pointer',
+    },
+    table: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      marginBottom: '20px',
+    },
+    tableHeader: {
+      backgroundColor: '#343a40',
+      color: '#fff',
+      padding: '10px',
+      textAlign: 'left' as 'left',
+    },
+    tableRow: {
+      backgroundColor: '#fff',
+      borderBottom: '1px solid #dee2e6',
+    },
+    tableCell: {
+      padding: '10px',
+      textAlign: 'left' as 'left',
+    },
+    deleteButton: {
+      backgroundColor: '#dc3545',
+      color: '#fff',
+      border: 'none',
+      padding: '5px 10px',
+      borderRadius: '3px',
+      cursor: 'pointer',
+    },
+  };
+
+export default AdminEventCRUD;
