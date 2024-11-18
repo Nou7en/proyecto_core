@@ -7,7 +7,7 @@ export class CreateEventDto {
 
   @IsDateString() // Cambiar de @IsDate() a @IsDateString()
   @IsNotEmpty()
-  date: string; // Acepta la fecha como cadena
+  date: Date; // Acepta la fecha como cadena
 
   @IsString()
   @IsNotEmpty()

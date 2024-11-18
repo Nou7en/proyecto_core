@@ -45,15 +45,24 @@ const AdminEventCRUD = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+
     if (editEvent) {
-      setEditEvent((prev) => (prev ? { ...prev, [name]: name === 'budget' ? parseFloat(value) : value } : null));
+      // Si estamos editando un evento existente, actualizamos `editEvent`
+      setEditEvent((prev) =>
+        prev ? { ...prev, [name]: name === 'budget' ? parseFloat(value) : value } : null
+      );
     } else {
-      setNewEvent((prev) => ({ ...prev, [name]: name === 'budget' ? parseFloat(value) : value }));
+      // Si estamos creando un nuevo evento, actualizamos `newEvent`
+      setNewEvent((prev) => ({
+        ...prev,
+        [name]: name === 'budget' ? parseFloat(value) : value,
+      }));
     }
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       const response = await axios.post('/events', newEvent);
       setEvents((prev) => [...prev, response.data]);
@@ -62,22 +71,30 @@ const AdminEventCRUD = () => {
       setError('');
     } catch (error) {
       setError('Error al crear el evento. Por favor, verifica los datos.');
-      console.error('Error creating event:', error);
+      console.error('Error creando el evento:', error);
     }
   };
 
   const handleEdit = (event: Event) => {
-    setEditEvent(event);
+    // Formatear la fecha del evento a `yyyy-MM-dd` para que el input de tipo date la acepte
+    const formattedDate = new Date(event.date).toISOString().split('T')[0];
+    setEditEvent({ ...event, date: formattedDate });
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editEvent) return;
-
+  
     try {
-      await axios.put(`/events/${editEvent.id}`, editEvent);
+      // Convertir la fecha a ISO-8601 si es necesario
+      const updatedEvent = {
+        ...editEvent,
+        date: new Date(editEvent.date).toISOString(), // Convierte la fecha a ISO-8601
+      };
+  
+      await axios.put(`/events/${editEvent.id}`, updatedEvent);
       setEvents((prev) =>
-        prev.map((event) => (event.id === editEvent.id ? editEvent : event))
+        prev.map((event) => (event.id === editEvent.id ? updatedEvent : event))
       );
       setEditEvent(null);
       setError('');
@@ -86,6 +103,7 @@ const AdminEventCRUD = () => {
       console.error('Error editing event:', error);
     }
   };
+  
 
   const handleDelete = async (id: number) => {
     try {
@@ -105,6 +123,7 @@ const AdminEventCRUD = () => {
 
       {showCreateForm && (
         <form onSubmit={handleCreateEvent} style={styles.form}>
+          <h2>Crear Evento</h2>
           <div style={styles.formGroup}>
             <label>Nombre:</label>
             <input
@@ -265,6 +284,7 @@ const AdminEventCRUD = () => {
   );
 };
 
+// Estilos
 const styles = {
   container: {
     padding: '20px',
@@ -316,7 +336,7 @@ const styles = {
   },
   table: {
     width: '100%',
-    borderCollapse: 'collapse',
+    borderCollapse: 'collapse' as 'collapse',
     marginBottom: '20px',
   },
   tableHeader: {
