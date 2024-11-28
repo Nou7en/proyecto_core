@@ -35,18 +35,24 @@ const RegisterAsistente: React.FC<RegisterAsistenteFormProps> = ({ eventId }) =>
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    if (name === 'alergenos') {
-      const selectedOptions = Array.from(
-        (e.target as HTMLSelectElement).selectedOptions
-      ).map((option) => option.value);
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleAlergenoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, checked } = e.target;
+
+    if (checked) {
       setFormData((prev) => ({
         ...prev,
-        alergenos: selectedOptions,
+        alergenos: [...prev.alergenos, value],
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]: value,
+        alergenos: prev.alergenos.filter((alergeno) => alergeno !== value),
       }));
     }
   };
@@ -118,19 +124,20 @@ const RegisterAsistente: React.FC<RegisterAsistenteFormProps> = ({ eventId }) =>
         </div>
         <div style={styles.formGroup}>
           <label>Selecciona Alérgenos (si aplica):</label>
-          <select
-            name="alergenos"
-            multiple
-            value={formData.alergenos}
-            onChange={handleInputChange}
-            style={styles.select}
-          >
+          <div style={styles.checkboxGroup}>
             {ALERGENOS.map((alergeno) => (
-              <option key={alergeno} value={alergeno}>
-                {alergeno}
-              </option>
+              <div key={alergeno} style={styles.checkboxItem}>
+                <input
+                  type="checkbox"
+                  value={alergeno}
+                  checked={formData.alergenos.includes(alergeno)}
+                  onChange={handleAlergenoChange}
+                  style={styles.checkbox}
+                />
+                <label>{alergeno}</label>
+              </div>
             ))}
-          </select>
+          </div>
         </div>
         <button type="submit" style={styles.submitButton}>Registrarse</button>
       </form>
@@ -153,12 +160,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   form: {
     display: 'flex',
-    flexDirection: 'column' as 'column', // Ajuste de tipo para cumplir con React.CSSProperties
+    flexDirection: 'column' as 'column',
     gap: '15px',
   },
   formGroup: {
     display: 'flex',
-    flexDirection: 'column' as 'column', // Ajuste de tipo para cumplir con React.CSSProperties
+    flexDirection: 'column' as 'column',
   },
   input: {
     padding: '10px',
@@ -166,12 +173,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '5px',
     border: '1px solid #ced4da',
   },
-  select: {
-    padding: '10px',
-    fontSize: '16px',
-    borderRadius: '5px',
-    border: '1px solid #ced4da',
-    height: '100px',
+  checkboxGroup: {
+    display: 'flex',
+    flexDirection: 'column' as 'column',
+    gap: '10px',
+  },
+  checkboxItem: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  checkbox: {
+    marginRight: '10px',
   },
   submitButton: {
     backgroundColor: '#007bff',

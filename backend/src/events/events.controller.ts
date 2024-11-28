@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { EventService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
-import { UpdateEventDto } from './dto/update-event.dto'; // Crear un DTO para las actualizaciones
+import { UpdateEventDto } from './dto/update-event.dto';
 
 @Controller('events')
 export class EventController {
@@ -64,6 +64,70 @@ export class EventController {
     } catch (error) {
       console.error('Error al actualizar el evento:', error);
       throw new BadRequestException('Error al actualizar el evento');
+    }
+  }
+
+  @Get(':id/full-details')
+  async getEventFullDetails(@Param('id', ParseIntPipe) id: number) {
+    try {
+      const event = await this.eventService.getFullEventDetails(id);
+      if (!event) {
+        throw new NotFoundException('Evento no encontrado');
+      }
+      return event;
+    } catch (error) {
+      console.error('Error al obtener detalles completos del evento:', error);
+      throw new BadRequestException('Error al obtener los detalles del evento');
+    }
+  }
+
+  @Post(':id/generate-menu')
+  async generateMenu(@Param('id', ParseIntPipe) id: number) {
+    try {
+      const menu = await this.eventService.generateMenuForEvent(id);
+      return { ...menu, id: menu.id }; // Incluyendo el id del menú en la respuesta
+    } catch (error) {
+      console.error('Error al generar el menú:', error);
+      throw new BadRequestException('Error al generar el menú');
+    }
+  }
+
+  @Post(':eventId/confirm-menu/:menuId')
+  async confirmMenu(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Param('menuId', ParseIntPipe) menuId: number,
+  ) {
+    try {
+      const confirmedMenu = await this.eventService.confirmarMenu(
+        eventId,
+        menuId,
+      );
+      return confirmedMenu;
+    } catch (error) {
+      console.error('Error al confirmar el menú:', error);
+      throw new BadRequestException('Error al confirmar el menú');
+    }
+  }
+
+  @Get('/reportes/platos')
+  async getReportePlatosMasRepetidos() {
+    try {
+      const reporte = await this.eventService.getReportePlatosMasRepetidos();
+      return reporte;
+    } catch (error) {
+      console.error('Error al obtener el reporte de platos:', error);
+      throw new BadRequestException('Error al obtener el reporte de platos');
+    }
+  }
+
+  @Get('/reportes/alergenos')
+  async getReporteAlergenosMasRepetidos() {
+    try {
+      const reporte = await this.eventService.getReporteAlergenosMasRepetidos();
+      return reporte;
+    } catch (error) {
+      console.error('Error al obtener el reporte de alérgenos:', error);
+      throw new BadRequestException('Error al obtener el reporte de alérgenos');
     }
   }
 

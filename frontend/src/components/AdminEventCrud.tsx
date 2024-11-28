@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from '../utils/axiosConfig';
+import { useRouter } from 'next/navigation';
 
 interface Event {
   id: number;
@@ -10,6 +11,21 @@ interface Event {
   location: string;
   budget: number;
   description?: string;
+  durationHours: number;
+}
+
+interface Menu {
+  id: number; // Identificador único del menú
+  eventId: number; // Añadido para almacenar el ID del evento
+  numeroRondas: number;
+  detallesRondas: {
+    ronda: number;
+    bocadillos: {
+      nombre: string;
+      cantidad: number;
+    }[];
+  }[];
+  budgetRemaining: number;
 }
 
 const AdminEventCRUD = () => {
@@ -21,9 +37,13 @@ const AdminEventCRUD = () => {
     location: '',
     budget: 0,
     description: '',
+    durationHours: 0,
   });
   const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const [viewEvent, setViewEvent] = useState<Event | null>(null);
+  const [menu, setMenu] = useState<Menu | null>(null);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -47,15 +67,13 @@ const AdminEventCRUD = () => {
     const { name, value } = e.target;
 
     if (editEvent) {
-      // Si estamos editando un evento existente, actualizamos `editEvent`
       setEditEvent((prev) =>
-        prev ? { ...prev, [name]: name === 'budget' ? parseFloat(value) : value } : null
+        prev ? { ...prev, [name]: name === 'budget' || name === 'durationHours' ? parseFloat(value) : value } : null
       );
     } else {
-      // Si estamos creando un nuevo evento, actualizamos `newEvent`
       setNewEvent((prev) => ({
         ...prev,
-        [name]: name === 'budget' ? parseFloat(value) : value,
+        [name]: name === 'budget' || name === 'durationHours' ? parseFloat(value) : value,
       }));
     }
   };
@@ -66,7 +84,7 @@ const AdminEventCRUD = () => {
     try {
       const response = await axios.post('/events', newEvent);
       setEvents((prev) => [...prev, response.data]);
-      setNewEvent({ name: '', date: '', location: '', budget: 0, description: '' });
+      setNewEvent({ name: '', date: '', location: '', budget: 0, description: '', durationHours: 0 });
       setShowCreateForm(false);
       setError('');
     } catch (error) {
@@ -76,7 +94,6 @@ const AdminEventCRUD = () => {
   };
 
   const handleEdit = (event: Event) => {
-    // Formatear la fecha del evento a `yyyy-MM-dd` para que el input de tipo date la acepte
     const formattedDate = new Date(event.date).toISOString().split('T')[0];
     setEditEvent({ ...event, date: formattedDate });
   };
@@ -84,14 +101,13 @@ const AdminEventCRUD = () => {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editEvent) return;
-  
+
     try {
-      // Convertir la fecha a ISO-8601 si es necesario
       const updatedEvent = {
         ...editEvent,
-        date: new Date(editEvent.date).toISOString(), // Convierte la fecha a ISO-8601
+        date: new Date(editEvent.date).toISOString(),
       };
-  
+
       await axios.put(`/events/${editEvent.id}`, updatedEvent);
       setEvents((prev) =>
         prev.map((event) => (event.id === editEvent.id ? updatedEvent : event))
@@ -103,7 +119,6 @@ const AdminEventCRUD = () => {
       console.error('Error editing event:', error);
     }
   };
-  
 
   const handleDelete = async (id: number) => {
     try {
@@ -114,11 +129,44 @@ const AdminEventCRUD = () => {
     }
   };
 
+  const handleView = (event: Event) => {
+    setViewEvent(event);
+  };
+
+  const handleGenerateMenu = async (eventId: number) => {
+    try {
+      const response = await axios.post(`/events/${eventId}/generate-menu`);
+      setMenu({ ...response.data, eventId }); // Añadir `eventId` al menú para su posterior uso
+      setError('');
+    } catch (error) {
+      setError('Error al generar el menú. Por favor, intenta nuevamente.');
+      console.error('Error generating menu:', error);
+    }
+  }; 
+
+  const handleConfirmMenu = async (eventId: number, menuId: number) => {
+    try {
+      await axios.post(`/events/${eventId}/confirm-menu/${menuId}`);
+      alert('Menú confirmado con éxito');
+      setMenu(null);
+    } catch (error) {
+      console.error('Error al confirmar el menú:', error);
+      setError('Error al confirmar el menú. Por favor, intenta nuevamente.');
+    }
+  };
+
+  const handleRedirectToReports = () => {
+    router.push('/reports');
+  };
+
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Gestión de Eventos</h1>
       <button style={styles.createButton} onClick={handleCreateFormToggle}>
         {showCreateForm ? 'Cancelar' : 'Añadir Evento'}
+      </button>
+      <button style={styles.reportButton} onClick={handleRedirectToReports}>
+        Ver Reportes
       </button>
 
       {showCreateForm && (
@@ -152,6 +200,17 @@ const AdminEventCRUD = () => {
               type="text"
               name="location"
               value={newEvent.location}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
+            <label>Duración (en horas):</label>
+            <input
+              type="number"
+              name="durationHours"
+              value={newEvent.durationHours}
               onChange={handleInputChange}
               required
               style={styles.input}
@@ -221,6 +280,17 @@ const AdminEventCRUD = () => {
             />
           </div>
           <div style={styles.formGroup}>
+            <label>Duración (en horas):</label>
+            <input
+              type="number"
+              name="durationHours"
+              value={editEvent.durationHours}
+              onChange={handleInputChange}
+              required
+              style={styles.input}
+            />
+          </div>
+          <div style={styles.formGroup}>
             <label>Presupuesto:</label>
             <input
               type="number"
@@ -235,7 +305,7 @@ const AdminEventCRUD = () => {
             <label>Descripción:</label>
             <textarea
               name="description"
-              value={editEvent.description}
+              value={editEvent.description || ''}
               onChange={handleInputChange}
               style={styles.input}
             />
@@ -247,6 +317,49 @@ const AdminEventCRUD = () => {
         </form>
       )}
 
+      {viewEvent && (
+        <div style={styles.form}>
+          <h2>Detalles del Evento</h2>
+          <p><strong>Nombre:</strong> {viewEvent.name}</p>
+          <p><strong>Fecha:</strong> {new Date(viewEvent.date).toLocaleDateString()}</p>
+          <p><strong>Ubicación:</strong> {viewEvent.location}</p>
+          <p><strong>Duración (horas):</strong> {viewEvent.durationHours}</p>
+          <p><strong>Presupuesto:</strong> {viewEvent.budget}</p>
+          <p><strong>Descripción:</strong> {viewEvent.description}</p>
+          <button onClick={() => handleGenerateMenu(viewEvent.id)} style={styles.submitButton}>Generar Menú</button>
+          <button onClick={() => setViewEvent(null)} style={styles.submitButton}>Cerrar</button>
+        </div>
+      )}
+
+      {menu && (
+        <div style={styles.form}>
+          <h2>Menú Generado</h2>
+          <p><strong>Número de Rondas:</strong> {menu.numeroRondas}</p>
+          <p><strong>Detalles de Rondas:</strong></p>
+          {menu.detallesRondas.map((ronda) => (
+            <div key={ronda.ronda}>
+              <p><strong>Ronda {ronda.ronda}:</strong></p>
+              <ul>
+                {ronda.bocadillos.map((bocadillo, index) => (
+                  <li key={index}>{bocadillo.nombre} - {bocadillo.cantidad} unidades</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <p><strong>Presupuesto Restante:</strong> {menu.budgetRemaining}</p>
+          {menu.eventId && menu.id && (
+            <button
+              onClick={() => handleConfirmMenu(menu.eventId, menu.id)}
+              style={styles.submitButton}
+            >
+              Confirmar Menú
+            </button>
+          )}
+          <button onClick={() => setMenu(null)} style={styles.submitButton}>Cerrar Menú</button>
+        </div>
+      )}
+
+      {/* Tabla de eventos */}
       <table style={styles.table}>
         <thead>
           <tr>
@@ -254,6 +367,7 @@ const AdminEventCRUD = () => {
             <th style={styles.tableHeader}>Nombre</th>
             <th style={styles.tableHeader}>Fecha</th>
             <th style={styles.tableHeader}>Ubicación</th>
+            <th style={styles.tableHeader}>Duración (horas)</th>
             <th style={styles.tableHeader}>Presupuesto</th>
             <th style={styles.tableHeader}>Descripción</th>
             <th style={styles.tableHeader}>Acciones</th>
@@ -266,15 +380,14 @@ const AdminEventCRUD = () => {
               <td style={styles.tableCell}>{event.name}</td>
               <td style={styles.tableCell}>{new Date(event.date).toLocaleDateString()}</td>
               <td style={styles.tableCell}>{event.location}</td>
+              <td style={styles.tableCell}>{event.durationHours}</td>
               <td style={styles.tableCell}>{event.budget}</td>
               <td style={styles.tableCell}>{event.description}</td>
               <td style={styles.tableCell}>
-                <button style={styles.editButton} onClick={() => handleEdit(event)}>
-                  Editar
-                </button>
-                <button style={styles.deleteButton} onClick={() => handleDelete(event.id)}>
-                  Eliminar
-                </button>
+                <button style={styles.viewButton} onClick={() => handleView(event)}>Ver</button>
+                <button style={styles.editButton} onClick={() => handleEdit(event)}>Editar</button>
+                <button style={styles.deleteButton} onClick={() => handleDelete(event.id)}>Eliminar</button>
+                <button style={styles.generateButton} onClick={() => handleGenerateMenu(event.id)}>Generar Menú</button>
               </td>
             </tr>
           ))}
@@ -284,7 +397,6 @@ const AdminEventCRUD = () => {
   );
 };
 
-// Estilos
 const styles = {
   container: {
     padding: '20px',
@@ -303,6 +415,16 @@ const styles = {
     borderRadius: '5px',
     border: 'none',
     cursor: 'pointer',
+    marginBottom: '15px',
+  },
+  reportButton: {
+    backgroundColor: '#17a2b8',
+    color: '#fff',
+    padding: '10px 15px',
+    borderRadius: '5px',
+    border: 'none',
+    cursor: 'pointer',
+    marginLeft: '10px',
     marginBottom: '15px',
   },
   form: {
@@ -353,6 +475,15 @@ const styles = {
     padding: '10px',
     textAlign: 'left' as 'left',
   },
+  viewButton: {
+    backgroundColor: '#17a2b8',
+    color: '#fff',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '3px',
+    cursor: 'pointer',
+    marginRight: '5px',
+  },
   editButton: {
     backgroundColor: '#ffc107',
     color: '#fff',
@@ -364,6 +495,14 @@ const styles = {
   },
   deleteButton: {
     backgroundColor: '#dc3545',
+    color: '#fff',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '3px',
+    cursor: 'pointer',
+  },
+  generateButton: {
+    backgroundColor: '#28a745',
     color: '#fff',
     border: 'none',
     padding: '5px 10px',

@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Get, Body } from '@nestjs/common';
 import { AsistentesService } from './asistentes.service';
 import { CreateAsistenteDto } from './dto/create-asistente.dto';
 
@@ -9,5 +9,10 @@ export class AsistentesController {
   @Post()
   async createAsistente(@Body() createAsistenteDto: CreateAsistenteDto) {
     return this.asistentesService.createAsistente(createAsistenteDto);
+  }
+
+  @Get()
+  async getAllAsistentes() {
+    return this.asistentesService.getAllAsistentes();
   }
 }
